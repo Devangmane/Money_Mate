@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "707128298079",
+    "project_id": "moneymate-995c2",
+    "storage_bucket": "moneymate-995c2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:707128298079:android:cbec025dd5c4c04e94e9ea",
+        "android_client_info": {
+          "package_name": "com.example.project3"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "707128298079-a2g11ooltikg5auhqrsivbbohf39ajek.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.project3",
+            "certificate_hash": "33cb2ab3ce1f5c40a6cf3c0379338aedc35aef6b"
+          }
+        },
+        {
+          "client_id": "707128298079-p3r9ng4hams8f590ecvfno7dh0hhkl93.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUIY0R8PfwDNgcVPcnCbTHJHGUWZLWXnw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "707128298079-p3r9ng4hams8f590ecvfno7dh0hhkl93.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "707128298079-eg9rmc3ma5pp41nl953morjoiaqh9tdd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.project3"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
