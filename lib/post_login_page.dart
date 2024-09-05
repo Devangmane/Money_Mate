@@ -41,9 +41,7 @@ class _PostLoginPageState extends State<PostLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Get today's date
     String todayDate = DateFormat.yMMMMd().format(DateTime.now());
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
