@@ -7,7 +7,9 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:moneymate/firebase_options.dart';
-import 'package:moneymate/login_page.dart';  // Import the login page
+import 'package:moneymate/login_page.dart';
+import 'package:moneymate/post_login_page.dart'; // Import the login page
+import 'package:moneymate/past_expenses_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,12 +22,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    User? user = FirebaseAuth.instance.currentUser;
     return MaterialApp(
-        title: 'MoneyMate',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home:const AuthPage() //MyHomePage(),
+      title: 'MoneyMate',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: StreamBuilder(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData && user != null) {
+            return PostLoginPage();
+          } else {
+            return AuthPage();
+          }
+        },
+      ),
     );
   }
 }
@@ -48,14 +60,12 @@ class _MyHomePageState extends State<MyHomePage> {
   String _expenseType = 'Rent';
   String _paymentMethod = 'UPI';
 
-  late final  ImagePicker _picker = ImagePicker();
-  late final  TextRecognizer _textRecognizer = TextRecognizer();
+  late final ImagePicker _picker = ImagePicker();
+  late final TextRecognizer _textRecognizer = TextRecognizer();
 
   late final TextEditingController _totalPriceController = TextEditingController();
   late final TextEditingController _sellerNameController = TextEditingController();
   late final TextEditingController _dateController = TextEditingController();
-
-
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
@@ -72,9 +82,10 @@ class _MyHomePageState extends State<MyHomePage> {
       final inputImage = InputImage.fromFilePath(_image!.path);
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
 
-      final pricePattern = RegExp(r'(total|amount|subtotal|grand total)\s*:?\s*\$?(\d+[.,]?\d*)', caseSensitive: false);
+      // Refined regex patterns
+      final totalPattern = RegExp(r'(total|grand total|amount|sum)\s*[:₹]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)', caseSensitive: false);
       final datePattern = RegExp(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b');
-      final sellerPattern = RegExp(r'(seller|store|merchant|invoice to|from)\s*:\s*(.+)', caseSensitive: false);
+      final sellerPattern = RegExp(r'([A-Z]+\s[A-Z]+)', caseSensitive: false);
 
       String totalPrice = '';
       String date = '';
@@ -83,29 +94,34 @@ class _MyHomePageState extends State<MyHomePage> {
       print("Recognized Text:");
       for (TextBlock block in recognizedText.blocks) {
         for (TextLine line in block.lines) {
-          String lineText = line.text.toLowerCase();
+          String lineText = line.text;
           print(lineText);
 
-          if (pricePattern.hasMatch(lineText) && totalPrice.isEmpty) {
-            totalPrice = pricePattern.firstMatch(lineText)!.group(2) ?? '';
+          // Extract total price
+          var totalMatch = totalPattern.firstMatch(lineText.toLowerCase());
+          if (totalMatch != null) {
+            totalPrice = totalMatch.group(2) ?? '';
+            print("Found total price: $totalPrice");
           }
 
+          // Extract date (unchanged)
           if (datePattern.hasMatch(lineText) && date.isEmpty) {
             date = datePattern.firstMatch(lineText)!.group(0) ?? '';
           }
 
+          // Extract seller name (unchanged)
           if (sellerPattern.hasMatch(lineText) && sellerName.isEmpty) {
-            sellerName = sellerPattern.firstMatch(lineText)!.group(2) ?? '';
+            sellerName = sellerPattern.firstMatch(lineText)!.group(0) ?? '';
           }
         }
       }
 
+      // Set the extracted data to the UI
       setState(() {
         _totalPrice = totalPrice;
         _date = date;
         _sellerName = sellerName;
         _text = 'Seller: $sellerName\nDate: $date\nTotal: $totalPrice';
-
         _totalPriceController.text = totalPrice;
         _dateController.text = date;
         _sellerNameController.text = sellerName;
@@ -257,31 +273,31 @@ class _MyHomePageState extends State<MyHomePage> {
         'sellerName': _sellerName,
         'expenseType': _expenseType,
         'paymentMethod': _paymentMethod,
-        'timestamp': FieldValue.serverTimestamp(),  // Optional: add a timestamp
+        'timestamp': FieldValue.serverTimestamp(), // Optional: add a timestamp
       };
       print("Map Generated");
       // Save the data to a 'expenses' collection
-      await FirebaseFirestore.instance.collection('Users').doc(FirebaseAuth.instance.currentUser!.uid).collection("expenses").add(data);
-      print("saved to database");
-      // Show a confirmation message
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection('expenses')
+          .add(data);
+      print("Stored in Firestore");
+      // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data saved to Firestore')),
+        const SnackBar(content: Text('Data saved successfully')),
       );
     } catch (e) {
-      print("Failed to save data: $e");
+      print("Error saving data: $e");
+      // Show an error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save data: $e')),
+        const SnackBar(content: Text('Failed to save data')),
       );
     }
   }
 
-
   Widget _buildDropdown(
-      String label,
-      List<String> items,
-      String selectedValue,
-      void Function(String?) onChanged,
-      ) {
+      String label, List<String> items, String selectedValue, Function(String?) onChanged) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
@@ -289,75 +305,18 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 5),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
-              borderRadius: BorderRadius.circular(5.0),
-            ),
-            child: DropdownButton<String>(
-              value: selectedValue,
-              isExpanded: true,
-              underline: const SizedBox(),
-              onChanged: onChanged,
-              items: items.map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-            ),
+          DropdownButton<String>(
+            value: selectedValue,
+            isExpanded: true,
+            onChanged: onChanged,
+            items: items.map((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
           ),
         ],
-      ),
-    );
-  }
-}
-class PastExpensesScreen extends StatelessWidget {
-  const PastExpensesScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Past Expenses'),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('Users')
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .collection("expenses")
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No past expenses found.'));
-          }
-
-          return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var expense = snapshot.data!.docs[index];
-              return Card(
-                margin: const EdgeInsets.all(8.0),
-                child: ListTile(
-                  title: Text('${expense['sellerName']} - ${expense['totalPrice']}'),
-                  subtitle: Text('${expense['date']} - ${expense['expenseType']}'),
-                  trailing: Text(expense['paymentMethod']),
-                ),
-              );
-            },
-          );
-        },
       ),
     );
   }

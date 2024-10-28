@@ -35,8 +35,8 @@ class _AuthPageState extends State<AuthPage> {
       password: _passwordController.text,
     );
     _showSuccessSnackBar('Signed in successfully');
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => const PostLoginPage()));  // Navigate to PostLoginPage
+    // Navigator.of(context)
+    //     .pushReplacement(MaterialPageRoute(builder: (context) => const PostLoginPage()));  // Navigate to PostLoginPage
   }
 
   Future<void> _signUp() async {
@@ -45,8 +45,8 @@ class _AuthPageState extends State<AuthPage> {
       password: _passwordController.text,
     );
     _showSuccessSnackBar('Account created successfully');
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => const PostLoginPage()));  // Navigate to PostLoginPage after sign-up
+    // Navigator.of(context)
+    //     .pushReplacement(MaterialPageRoute(builder: (context) => const PostLoginPage()));  // Navigate to PostLoginPage after sign-up
   }
 
   Future<void> _signInWithGoogle() async {
